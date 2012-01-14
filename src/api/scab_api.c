@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "scab.h"
+#include "scab_common.h"
 #include "serial.h"
+
+
+typedef serial_handle_t scab_handle_t;
 
 
 /* little endian related routines
@@ -58,13 +62,17 @@ static int write_cmd_read_status(scab_handle_t* h, const uint8_t* buf)
 /* exported programming interface
  */
 
-int scab_open(scab_handle_t* h, const char* devname)
+int scab_open(scab_handle_t** hh, const char* devname)
 {
   static const serial_conf_t conf = { 38400, 8, SERIAL_PARITY_DISABLED, 1 };
+
+  scab_handle_t* const h = malloc(sizeof(scab_handle_t));
+  if (h == NULL) return -1;
 
   if (serial_open(h, devname) == -1)
   {
     printf("serial_open(%s) == -1\n", devname);
+    free(h);
     return -1;
   }
 
@@ -75,7 +83,7 @@ int scab_open(scab_handle_t* h, const char* devname)
     return -1;
   }
 
-  /* flush residual */
+  *hh = h;
 
   return 0;
 }
@@ -84,6 +92,7 @@ int scab_open(scab_handle_t* h, const char* devname)
 int scab_close(scab_handle_t* h)
 {
   serial_close(h);
+  free(h);
   return 0;
 }
 
@@ -189,4 +198,13 @@ int scab_clear_can_filter(scab_handle_t* h)
   uint8_t scab_buf[SCAB_CMD_SIZE];
   scab_buf[0] = SCAB_CMD_CLEAR_CAN_FILTER;
   return write_cmd_read_status(h, scab_buf);
+}
+
+
+/* file descriptor accessor
+ */
+
+int scab_get_handle_fd(scab_handle_t* h)
+{
+  return h->fd;
 }

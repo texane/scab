@@ -1,5 +1,5 @@
-#ifndef COMMON_H_INCLUDED
-# define COMMON_H_INCLUDED
+#ifndef SCAB_COMMON_H_INCLUDED
+# define SCAB_COMMON_H_INCLUDED
 
 
 /* common to host and device */
@@ -24,4 +24,4 @@
 #define SCAB_CMD_SIZE (1 + 2 + 8)
 
 
-#endif /* ! COMMON_H_INCLUDED */
+#endif /* ! SCAB_COMMON_H_INCLUDED */

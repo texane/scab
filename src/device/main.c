@@ -1,5 +1,5 @@
 #include <p33Fxxxx.h>
-#include "../common/common.h"
+#include "../common/scab_common.h"
 
 
 /* configuration bits */
