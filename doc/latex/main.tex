@@ -5,7 +5,8 @@
 \usepackage{verbatim}
 \usepackage{listings}
 \usepackage{color}
-\usepackage{bytefield}
+\usepackage[bitheight=6ex]{bytefield}
+\usepackage[bookmarksopen=true]{hyperref}
 
 \begin{document}
 
@@ -51,7 +52,7 @@ bridging a serial port. To do so, SCAB provides the following:
 \paragraph{}
 The project is maintained in a GIT repository:
 \begin{center}
-https://github.com/texane/scab
+\url{https://github.com/texane/scab}
 \end{center}
 \paragraph{}
 In the remaining of this document, the expression:
@@ -155,7 +156,7 @@ can be compiled using:\\
 \lstset{commentstyle=\color{blue}}
 \lstset{language=C}
 \begin{lstlisting}[frame=tb]
-cd $SCAB_REPO_DIR/build/device.X ;
+cd \$SCAB_REPO_DIR/build/device.X ;
 make ;
 \end{lstlisting}
 \end{small}
@@ -183,14 +184,165 @@ All the symbolic constants used in this section can be found in the file:
 
 \paragraph{}
 All the packets share the same basic format and are of the same fixed length
-SCAB\_CMD\_SIZE. The packets can be sorted in 2 groups:
+SCAB\_CMD\_SIZE (currently 11 bytes). Thus, even for packets with smaller
+payloads, SCAB\_CMD\_SIZE must be sent over the serial link.
+
+\paragraph{}
+The packets can be sorted in 2 groups:
 \begin{itemize}
 \item bridge management commands: set parameters such as link speeds, CAN filters ...
 \item frame forwarding: actual data frame forwarding.
 \end{itemize}
 
-\subsection{Packet formats}
 \paragraph{}
-TODO
+A management command is always sent by the host to the bridge device. It always
+requires a SCAB\_CMD\_STATUS to be sent, containing the completion status of the
+command.
+
+\paragraph{}
+SCAB\_CMD\_FRAME is the only non management packet. It can be sent either by the
+host to send a frame on the CAN network, or by the device to forward a frame from
+the CAN network to the host. There is no SCAB\_CMD\_STATUS packet involved in those
+transfers.
+
+\paragraph{}
+Note that the little endian byte ordering is used between the host and the bridge.
+
+\subsection{Packet formats}
+
+\newpage
+\subsubsection{Basic packet format}
+\begin{figure}[htbp]
+  \centering
+  \begin{bytefield}{32}
+    \bitheader{0,7-8,15-16,23-24,31} \\
+    \begin{rightwordgroup}{command identifier (1 byte)}
+      \bitbox{8}{\parbox{\width}{\centering \tiny{SCAB\_CMD\_xxx}}}
+    \end{rightwordgroup} \\
+
+    \begin{rightwordgroup}{command specific (10 bytes)}
+      \bitbox{32}{} \\
+      \bitbox{32}{} \\
+      \bitbox{24}{}
+    \end{rightwordgroup}
+  \end{bytefield}
+  \caption{Basic packet format}
+  \label{fig:basic-packet-format}
+\end{figure}
+
+\paragraph{}
+All the packets follow the same basic format. This format is then specialized
+using the command identifier. The data field is then used according to the
+command as described in the next sections.
+
+\newpage
+\subsubsection{SCAB\_CMD\_FRAME format}
+\begin{figure}[htbp]
+  \centering
+  \begin{bytefield}{32}
+    \bitheader{0,7-8,15-16,23-24,31} \\
+    \bitbox{8}{\parbox{\width}{\centering \tiny{SCAB\_CMD\_FRAME}}} \\
+    \bitbox{16}{\parbox{\width}{\centering \tiny{CAN SID \\ (2 bytes)}}} \\
+    \begin{rightwordgroup}{CAN payload (8 bytes)}
+      \bitbox{32}{} \\
+      \bitbox{32}{}
+    \end{rightwordgroup}
+  \end{bytefield}
+  \caption{SCAB\_CMD\_FRAME format}
+  \label{fig:scab-cmd-frame-format}
+\end{figure}
+
+\newpage
+\subsubsection{SCAB\_CMD\_SYNC format}
+\begin{figure}[htbp]
+  \centering
+  \begin{bytefield}{32}
+    \bitheader{0,7-8,15-16,23-24,31} \\
+    \bitbox{8}{\parbox{\width}{\centering \tiny{SCAB\_CMD\_SYNC}}} \\
+    \begin{rightwordgroup}{unused (10 bytes)}
+      \bitbox{32}{} \\
+      \bitbox{32}{} \\
+      \bitbox{24}{}
+    \end{rightwordgroup}
+  \end{bytefield}
+  \caption{SCAB\_CMD\_SYNC format}
+  \label{fig:scab-cmd-sync-format}
+\end{figure}
+
+\newpage
+\subsubsection{SCAB\_CMD\_ENABLE format}
+\begin{figure}[htbp]
+  \centering
+  \begin{bytefield}{32}
+    \bitheader{0,7-8,15-16,23-24,31} \\
+    \bitbox{8}{\parbox{\width}{\centering \tiny{SCAB\_CMD\_ENABLE}}} \\
+    \bitbox{8}{\parbox{\width}{\centering \tiny{boolean value \\ (1 byte)}}} \\
+    \begin{rightwordgroup}{unused (9 bytes)}
+      \bitbox{32}{} \\
+      \bitbox{32}{} \\
+      \bitbox{8}{}
+    \end{rightwordgroup}
+  \end{bytefield}
+  \caption{SCAB\_CMD\_ENABLE format}
+  \label{fig:scab-cmd-enable-format}
+\end{figure}
+
+\newpage
+\subsubsection{SCAB\_CMD\_SET\_CAN\_TIMES format}
+\paragraph{}
+TODO, not yet implemented
+
+\newpage
+\subsubsection{SCAB\_CMD\_SET\_CAN\_FILTER format}
+\begin{figure}[htbp]
+  \centering
+  \begin{bytefield}{32}
+    \bitheader{0,7-8,15-16,23-24,31} \\
+    \bitbox{8}{\parbox{\width}{\centering \tiny{SCAB\_CMD\_SET\_CAN\_FILTER}}} \\
+    \bitbox{16}{\parbox{\width}{\centering \tiny{mask \\ (2 bytes)}}} \\
+    \bitbox{16}{\parbox{\width}{\centering \tiny{SID \\ (2 bytes)}}} \\
+    \begin{rightwordgroup}{unused (6 bytes)}
+      \bitbox{32}{} \\
+      \bitbox{24}{}
+    \end{rightwordgroup}
+  \end{bytefield}
+  \caption{SCAB\_CMD\_SET\_CAN\_FILTER format}
+  \label{fig:scab-cmd-set-can-filter-format}
+\end{figure}
+
+\newpage
+\subsubsection{SCAB\_CMD\_CLEAR\_CAN\_FILTER format}
+\begin{figure}[htbp]
+  \centering
+  \begin{bytefield}{32}
+    \bitheader{0,7-8,15-16,23-24,31} \\
+    \bitbox{8}{\parbox{\width}{\centering \tiny{SCAB\_CMD\_CLEAR\_CAN\_FILTER}}} \\
+    \begin{rightwordgroup}{unused (10 bytes)}
+      \bitbox{32}{} \\
+      \bitbox{32}{} \\
+      \bitbox{24}{}
+    \end{rightwordgroup}
+  \end{bytefield}
+  \caption{SCAB\_CMD\_CLEAR\_CAN\_FILTER format}
+  \label{fig:scab-cmd-clear-can-filter-format}
+\end{figure}
+
+\newpage
+\subsubsection{SCAB\_CMD\_STATUS format}
+\begin{figure}[htbp]
+  \centering
+  \begin{bytefield}{32}
+    \bitheader{0,7-8,15-16,23-24,31} \\
+    \bitbox{8}{\parbox{\width}{\centering \tiny{SCAB\_CMD\_FRAME}}} \\
+    \bitbox{8}{\parbox{\width}{\centering \tiny{SCAB\_STATUS\_xxx \\ (1 byte)}}} \\
+    \begin{rightwordgroup}{unused (9 bytes)}
+      \bitbox{32}{} \\
+      \bitbox{32}{} \\
+      \bitbox{8}{}
+    \end{rightwordgroup}
+  \end{bytefield}
+  \caption{SCAB\_CMD\_STATUS format}
+  \label{fig:scab-cmd-status-format}
+\end{figure}
 
 \end{document}
