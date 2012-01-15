@@ -5,6 +5,7 @@
 \usepackage{verbatim}
 \usepackage{listings}
 \usepackage{color}
+\usepackage{bytefield}
 
 \begin{document}
 
@@ -33,25 +34,31 @@ This document describes the SCAB api library and the DSPIC33F firmware.
 \begin{figure}[]
 \centering
 \includegraphics[scale=0.5]{./dia/scab_network/main.jpeg}
-\caption{global view}
-\label{global_view}
+\caption{serial to CAN bridging}
+\label{scab_bridging}
 \end{figure}
 
 \paragraph{}
 Usually, PCs do not have the hardware interfaces required to communicate on a
-CAN network. SCAB aims at adding CAN connectivity to PCs by bridging a serial
-port. To do so, 2 softwares are provided:
+CAN network. SCAB is an opensource project to add CAN connectivity to PCs by
+bridging a serial port. To do so, SCAB provides the following:
 \begin{itemize}
 \item a firmware to be flashed on a DSPIC33F board,
-\item a programming interface to be used by the client application.
+\item a programming interface implemented in a library used by host applications.
 \end{itemize}
 
 \subsection{Availability}
 \paragraph{}
-The project source code is maintained in a GIT repository:
+The project is maintained in a GIT repository:
 \begin{center}
 https://github.com/texane/scab
 \end{center}
+\paragraph{}
+In the remaining of this document, the expression:
+\begin{center}
+\$SCAB\_REPO\_DIR
+\end{center}
+denotes the directory where the repository was cloned.
 
 \subsection{Dependencies}
 \paragraph{}
@@ -64,20 +71,126 @@ Note that WINDOWS and MACOSX are not yet supported.
 
 
 \newpage
-\section{Host programming interface}
-\subsection{Compiling the library}
-\subsection{Interface documentation}
-\subsection{Example program}
-\subsection{Limitations}
+\section{Host application programming interface}
 
+\subsection{Overview}
+\paragraph{}
+The source code is located in:
+\begin{center}
+\$SCAB\_REPO\_DIR/src/api
+\end{center}
+
+\paragraph{}
+The API is shipped as a standalone static library and can be built using:\\
+\begin{small}
+\lstset{commentstyle=\color{blue}}
+\lstset{language=C}
+\begin{lstlisting}[frame=tb]
+cd $SCAB_REPO_DIR/build/api ;
+make ;
+\end{lstlisting}
+\end{small}
+
+\paragraph{}
+It produces the file:
+\begin{center}
+\$SCAB\_REPO\_DIR/build/api/libscab\_api.a
+\end{center}
+
+If a GNU toolchain is used, the library is linked in a client application
+by adding the following flags to command line:\\
+\begin{small}
+\lstset{commentstyle=\color{blue}}
+\lstset{language=C}
+\begin{lstlisting}[frame=tb]
+-L$SCAB_REPO_DIR/build/api -lscab_api
+\end{lstlisting}
+\end{small}
+
+\subsection{Interface documentation}
+\paragraph{}
+\begin{small}
+\lstset{commentstyle=\color{blue}}
+\lstset{language=C}
+\begin{lstlisting}[frame=tb]
+int scab_open(scab_handle_t**, const char*);
+int scab_close(scab_handle_t*);
+int scab_sync_serial(scab_handle_t*);
+int scab_read_frame(scab_handle_t*, uint16_t*, uint8_t*);
+int scab_write_frame(scab_handle_t*, uint16_t, const uint8_t*);
+int scab_enable_bridge(scab_handle_t*);
+int scab_disable_bridge(scab_handle_t*);
+int scab_set_can_filter(scab_handle_t*, uint16_t, uint16_t);
+int scab_clear_can_filter(scab_handle_t*);
+int scab_get_handle_fd(scab_handle_t*);
+\end{lstlisting}
+\end{small}
+
+\subsection{Example program}
+\paragraph{}
+TODO
+
+\subsection{Limitations}
+\paragraph{}
+TODO
 
 \newpage
 \section{Device firmware}
-\subsection{Limitations}
 
+\subsection{Overview}
+\paragraph{}
+The firmware is a piece of software put on a DSPIC33F board to perform the forwarding
+of frame to and from the host PC an the CAN network.
+
+\paragraph{}
+The source code is located in:
+\begin{center}
+\$SCAB\_REPO\_DIR/src/device
+\end{center}
+
+\paragraph{}
+Assuming that MPLABX version 1.0 has been installed with the default paths, the firmware
+can be compiled using:\\
+\begin{small}
+\lstset{commentstyle=\color{blue}}
+\lstset{language=C}
+\begin{lstlisting}[frame=tb]
+cd $SCAB_REPO_DIR/build/device.X ;
+make ;
+\end{lstlisting}
+\end{small}
+
+\paragraph{}
+It produces the file:
+\begin{center}
+\$SCAB\_REPO\_DIR/build/device.X/dist/default/production/device.X.production.hex
+\end{center}
+which is used to program the DSPIC33F flash.
+
+\subsection{Limitations}
+\paragraph{}
+TODO
 
 \newpage
-\section{Host to device protocol}
+\section{Protocol between host and device}
 
+\subsection{Overview}
+\paragraph{}
+All the symbolic constants used in this section can be found in the file:
+\begin{center}
+\$SCAB\_REPO\_DIR/src/common/scab\_common.h
+\end{center}
+
+\paragraph{}
+All the packets share the same basic format and are of the same fixed length
+SCAB\_CMD\_SIZE. The packets can be sorted in 2 groups:
+\begin{itemize}
+\item bridge management commands: set parameters such as link speeds, CAN filters ...
+\item frame forwarding: actual data frame forwarding.
+\end{itemize}
+
+\subsection{Packet formats}
+\paragraph{}
+TODO
 
 \end{document}
